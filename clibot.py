@@ -26,13 +26,6 @@ async def main():
         formatter=OpenAIChatFormatter(),
         toolkit=toolkit,
     )
-    
-    sse_queue=asyncio.Queue()
-    def sse_queue(agent,kwargs):
-        print('sse_response',kwargs)
-        sse_queue.put_nowait(kwargs)
-    agent.register_instance_hook(hook_type="pre_print", hook_name="sse", hook=sse_response)
-
     user = UserAgent(name="user")
 
     msg = None
