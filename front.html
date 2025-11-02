@@ -78,6 +78,11 @@
 
         // 设置用户名
         usernameInput.addEventListener('change', function() {
+            // 如果用户名发生变化，清空聊天框
+            if (currentUsername !== this.value.trim()) {
+                chatContainer.innerHTML = '';
+            }
+            
             currentUsername = this.value.trim();
             if (currentUsername) {
                 messageInput.disabled = false;
@@ -210,6 +215,7 @@
                 originalOnMessage.call(this, event);
             }
         };
+        
     </script>
 </body>
 </html>
