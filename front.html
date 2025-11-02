@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatBot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #username-container {
+            margin-bottom: 20px;
+        }
+        #chat-container {
+            border: 1px solid #ccc;
+            height: 400px;
+            overflow-y: scroll;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+        }
+        .user-message {
+            background-color: #d1ecf1;
+            text-align: right;
+        }
+        .bot-message {
+            background-color: #f8d7da;
+        }
+        #input-container {
+            display: flex;
+            gap: 10px;
+        }
+        #message-input {
+            flex: 1;
+            padding: 10px;
+        }
+        button {
+            padding: 10px 20px;
+        }
+        .disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>ChatBot</h1>
+    
+    <div id="username-container">
+        <label for="username">用户名:</label>
+        <input type="text" id="username" placeholder="请输入您的昵称">
+    </div>
+    
+    <div id="chat-container"></div>
+    
+    <div id="input-container">
+        <input type="text" id="message-input" placeholder="输入您的问题..." disabled>
+        <button id="send-button" disabled>发送</button>
+    </div>
+
+    <script>
+        const usernameInput = document.getElementById('username');
+        const chatContainer = document.getElementById('chat-container');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        
+        let currentUsername = '';
+        let eventSource = null;
+        let botMessageElement = null;
+        let isRequestPending = false; // 跟踪是否有正在进行的请求
+
+        // 设置用户名
+        usernameInput.addEventListener('change', function() {
+            currentUsername = this.value.trim();
+            if (currentUsername) {
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+            } else {
+                messageInput.disabled = true;
+                sendButton.disabled = true;
+            }
+        });
+
+        // 发送消息
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            const query = messageInput.value.trim();
+            if (!query || !currentUsername || isRequestPending) return;
+
+            // 设置请求状态为进行中
+            isRequestPending = true;
+            updateUIState();
+
+            // 显示用户消息
+            displayMessage(query, 'user');
+            
+            // 清空输入框
+            messageInput.value = '';
+            
+            // 创建机器人回复的消息框
+            botMessageElement = displayMessage('', 'bot');
+            
+            // 建立SSE连接
+            const url = `http://localhost:8000/stream?username=${encodeURIComponent(currentUsername)}&query=${encodeURIComponent(query)}`;
+            eventSource = new EventSource(url);
+
+            // 监听消息事件
+            eventSource.onmessage = function(event) {    
+                const data = JSON.parse(event.data);
+                // 更新机器人的回复（每次用新的完整message覆盖之前的）
+                if (botMessageElement && data.message !== undefined) {
+                    botMessageElement.textContent = data.message;
+                }
+            };
+
+            // 监听连接打开事件
+            eventSource.onopen = function(event) {
+                console.log('Connection opened');
+            };
+
+            // 监听错误事件或连接关闭事件
+            eventSource.onerror = function(event) {
+                console.error('Error occurred:', event);
+                finishRequest();
+            };
+        }
+
+        // 完成请求处理
+        function finishRequest() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+            isRequestPending = false;
+            updateUIState();
+        }
+
+        // 更新UI状态（根据是否正在请求来启用/禁用控件）
+        function updateUIState() {
+            if (isRequestPending) {
+                sendButton.disabled = true;
+                sendButton.textContent = "请求中...";
+                messageInput.disabled = true;
+            } else {
+                sendButton.disabled = !currentUsername;
+                sendButton.textContent = "发送";
+                messageInput.disabled = !currentUsername;
+            }
+        }
+
+        function displayMessage(content, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.classList.add(sender + '-message');
+            messageDiv.textContent = content;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // 如果是机器人的消息，则在消息后监听DOM变化以检测完成
+            if (sender === 'bot') {
+                // 创建一个MutationObserver来监听消息元素的变化
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        }
+                    });
+                });
+                
+                // 开始观察消息元素的变化
+                observer.observe(messageDiv, {
+                    childList: true,
+                    characterData: true,
+                    subtree: true
+                });
+                
+                // 当请求完成时停止观察
+                if (!isRequestPending) {
+                    setTimeout(() => observer.disconnect(), 100);
+                }
+            }
+            
+            return sender === 'bot' ? messageDiv : null;
+        }
+        
+        // 检测服务器发送事件结束的机制
+        // 通过覆盖原始的onmessage并检查特定条件判断流是否结束
+        const originalOnMessage = EventSource.prototype.onmessage;
+        EventSource.prototype.onmessage = function(event) {
+            // 这里我们假设当收到一个空消息或者特殊标记时表示流结束
+            // 具体实现取决于后端如何标记流结束
+            // 在此示例中，我们假设当连接关闭时表示请求完成
+            
+            // 调用原始处理函数
+            if (originalOnMessage) {
+                originalOnMessage.call(this, event);
+            }
+        };
+    </script>
+</body>
+</html>
