@@ -11,6 +11,7 @@ from agentscope.tool import Toolkit, execute_python_code
 from agentscope.session import JSONSession
 from agentscope.message import Msg
 import os 
+from collections import OrderedDict
 
 app = FastAPI(title="Simple SSE API")
 app.add_middleware(
@@ -58,15 +59,18 @@ async def stream(username,query):
  
     sse_queue=asyncio.Queue()
     
+    msg_dict=OrderedDict()
+    
     # 应答放入队列
     async def stream_collect(agent,kwargs):
         response=''
         for block in kwargs['msg'].get_content_blocks('text'):
             response=block['text']
         if response:
-            await sse_queue.put(response)
+            msg_dict[kwargs['msg'].id]=response
+            await sse_queue.put('<br>'.join([v for k,v in msg_dict.items()]))
     agent.register_instance_hook(hook_type="pre_print",hook_name="sse",hook=stream_collect)
-        
+
     # 应答回复客户端
     async def stream_response():
         while True:

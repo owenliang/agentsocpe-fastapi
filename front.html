@@ -4,65 +4,371 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChatBot</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.staticfile.net/marked/14.1.3/marked.min.js"></script>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        #username-container {
-            margin-bottom: 20px;
-        }
-        #chat-container {
-            border: 1px solid #ccc;
-            height: 400px;
-            overflow-y: scroll;
-            padding: 10px;
-            margin-bottom: 20px;
-        }
-        .message {
-            margin-bottom: 10px;
-            padding: 8px;
-            border-radius: 5px;
-        }
-        .user-message {
-            background-color: #d1ecf1;
-            text-align: right;
-        }
-        .bot-message {
-            background-color: #f8d7da;
-        }
-        #input-container {
+            background-color: #000;
+            color: #fff;
+            height: 100vh;
             display: flex;
-            gap: 10px;
+            flex-direction: column;
         }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #000;
+            border-bottom: 1px solid #2f3336;
+            padding: 12px 16px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: 700;
+            margin-right: 20px;
+        }
+
+        .logo i {
+            color: #1d9bf0;
+        }
+
+        .username-input-container {
+            flex: 1;
+            position: relative;
+        }
+
+        .username-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 50px;
+            background-color: #202327;
+            border: 1px solid #333639;
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .username-input:focus {
+            border-color: #1d9bf0;
+        }
+
+        .main-content {
+            flex: 1;
+            padding-top: 60px;
+            padding-bottom: 80px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-container {
+            flex: 1;
+            padding: 16px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border-radius: 18px;
+            max-width: 75%;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        .user-message {
+            background-color: #1d9bf0;
+            color: #fff;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .bot-message {
+            background-color: #2f3336;
+            color: #fff;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #1d9bf0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .user-avatar {
+            background-color: #1d9bf0;
+        }
+
+        .bot-avatar {
+            background-color: #8e44ad;
+        }
+
+        .sender-name {
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .user-name {
+            color: #fff;
+        }
+
+        .bot-name {
+            color: #1d9bf0;
+        }
+
+        .message-content {
+            font-size: 16px;
+            line-height: 1.4;
+        }
+        
+        .message-content h1,
+        .message-content h2,
+        .message-content h3,
+        .message-content h4,
+        .message-content h5,
+        .message-content h6 {
+            margin: 10px 0 5px 0;
+            font-weight: 600;
+        }
+        
+        .message-content h1 { font-size: 1.5em; }
+        .message-content h2 { font-size: 1.4em; }
+        .message-content h3 { font-size: 1.3em; }
+        .message-content h4 { font-size: 1.2em; }
+        .message-content h5 { font-size: 1.1em; }
+        .message-content h6 { font-size: 1em; }
+        
+        .message-content p {
+            margin: 8px 0;
+        }
+        
+        .message-content ul,
+        .message-content ol {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+        
+        .message-content li {
+            margin: 4px 0;
+        }
+        
+        .message-content pre {
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .message-content code {
+            background-color: #1e1e1e;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        
+        .message-content blockquote {
+            border-left: 3px solid #1d9bf0;
+            padding-left: 10px;
+            margin: 10px 0;
+            color: #aaa;
+        }
+        
+        .message-content a {
+            color: #1d9bf0;
+            text-decoration: none;
+        }
+        
+        .message-content a:hover {
+            text-decoration: underline;
+        }
+        
+        .message-content strong {
+            font-weight: bold;
+        }
+        
+        .message-content em {
+            font-style: italic;
+        }
+
+        .input-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #000;
+            border-top: 1px solid #2f3336;
+            padding: 12px 16px;
+        }
+
+        .input-container {
+            display: flex;
+            align-items: center;
+            background-color: #202327;
+            border-radius: 50px;
+            border: 1px solid #333639;
+        }
+
+        .input-container:focus-within {
+            border-color: #1d9bf0;
+        }
+
         #message-input {
             flex: 1;
-            padding: 10px;
+            padding: 14px 16px;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 16px;
+            outline: none;
         }
-        button {
-            padding: 10px 20px;
+
+        #message-input::placeholder {
+            color: #71767b;
         }
-        .disabled {
+
+        .send-button {
+            background-color: #1d9bf0;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            margin: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+
+        .send-button:hover {
+            background-color: #1a8cd8;
+        }
+
+        .send-button:disabled {
+            background-color: #1d9bf0;
             opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        .send-button i {
+            font-size: 20px;
+        }
+
+        .request-indicator {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #1d9bf0;
+            font-size: 14px;
+        }
+
+        .loading-dots {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .loading-dots::after {
+            content: '.';
+            animation: loading 1.4s steps(5, jump-none) infinite;
+        }
+
+        @keyframes loading {
+            0% { content: '.'; }
+            20% { content: '..'; }
+            40% { content: '...'; }
+            60% { content: '....'; }
+            80% { content: '.....'; }
+            100% { content: '.'; }
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            color: #71767b;
+            padding: 20px;
+        }
+
+        .empty-state i {
+            font-size: 60px;
+            margin-bottom: 20px;
+            color: #2f3336;
+        }
+
+        .empty-state h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            color: #71767b;
         }
     </style>
 </head>
 <body>
-    <h1>ChatBot</h1>
-    
-    <div id="username-container">
-        <label for="username">用户名:</label>
-        <input type="text" id="username" placeholder="请输入您的昵称">
+    <div class="header">
+        <div class="logo">
+            <i class="fab fa-twitter"></i> ChatBot
+        </div>
+        <div class="username-input-container">
+            <input type="text" id="username" class="username-input" placeholder="Enter your username">
+        </div>
     </div>
-    
-    <div id="chat-container"></div>
-    
-    <div id="input-container">
-        <input type="text" id="message-input" placeholder="输入您的问题..." disabled>
-        <button id="send-button" disabled>发送</button>
+
+    <div class="main-content">
+        <div class="chat-container" id="chat-container">
+            <div class="empty-state">
+                <i class="fas fa-comment-dots"></i>
+                <h2>Welcome to ChatBot!</h2>
+                <p>Enter your username and start chatting with our AI assistant</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="input-area">
+        <div class="input-container">
+            <input type="text" id="message-input" placeholder="Type your message..." disabled>
+            <button id="send-button" class="send-button" disabled>
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
     </div>
 
     <script>
@@ -70,30 +376,33 @@
         const chatContainer = document.getElementById('chat-container');
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
-        
+
         let currentUsername = '';
         let eventSource = null;
         let botMessageElement = null;
-        let isRequestPending = false; // 跟踪是否有正在进行的请求
+        let isRequestPending = false;
 
-        // 设置用户名
-        usernameInput.addEventListener('change', function() {
-            // 如果用户名发生变化，清空聊天框
+        // Set username
+        usernameInput.addEventListener('input', function() {
+            // If username changes, clear chat
             if (currentUsername !== this.value.trim()) {
-                chatContainer.innerHTML = '';
-            }
-            
-            currentUsername = this.value.trim();
-            if (currentUsername) {
-                messageInput.disabled = false;
-                sendButton.disabled = false;
-            } else {
-                messageInput.disabled = true;
-                sendButton.disabled = true;
+                // Only clear if we had a previous username set
+                if (currentUsername) {
+                    chatContainer.innerHTML = '';
+                }
+                
+                currentUsername = this.value.trim();
+                if (currentUsername) {
+                    messageInput.disabled = false;
+                    sendButton.disabled = false;
+                } else {
+                    messageInput.disabled = true;
+                    sendButton.disabled = true;
+                }
             }
         });
 
-        // 发送消息
+        // Send message
         sendButton.addEventListener('click', sendMessage);
         messageInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
@@ -105,45 +414,45 @@
             const query = messageInput.value.trim();
             if (!query || !currentUsername || isRequestPending) return;
 
-            // 设置请求状态为进行中
+            // Set request status to in progress
             isRequestPending = true;
             updateUIState();
 
-            // 显示用户消息
+            // Show user message
             displayMessage(query, 'user');
-            
-            // 清空输入框
+
+            // Clear input field
             messageInput.value = '';
-            
-            // 创建机器人回复的消息框
+
+            // Create bot response message box
             botMessageElement = displayMessage('', 'bot');
-            
-            // 建立SSE连接
+
+            // Establish SSE connection
             const url = `http://localhost:8000/stream?username=${encodeURIComponent(currentUsername)}&query=${encodeURIComponent(query)}`;
             eventSource = new EventSource(url);
 
-            // 监听消息事件
-            eventSource.onmessage = function(event) {    
+            // Listen for message events
+            eventSource.onmessage = function(event) {
                 const data = JSON.parse(event.data);
-                // 更新机器人的回复（每次用新的完整message覆盖之前的）
+                // Update bot's response (each time replace previous with new complete message)
                 if (botMessageElement && data.message !== undefined) {
-                    botMessageElement.textContent = data.message;
+                    botMessageElement.querySelector('.message-content').innerHTML = marked.parse(data.message);
                 }
             };
 
-            // 监听连接打开事件
+            // Listen for connection open event
             eventSource.onopen = function(event) {
                 console.log('Connection opened');
             };
 
-            // 监听错误事件或连接关闭事件
+            // Listen for error or connection close events
             eventSource.onerror = function(event) {
                 console.error('Error occurred:', event);
                 finishRequest();
             };
         }
 
-        // 完成请求处理
+        // Finish request handling
         function finishRequest() {
             if (eventSource) {
                 eventSource.close();
@@ -153,69 +462,66 @@
             updateUIState();
         }
 
-        // 更新UI状态（根据是否正在请求来启用/禁用控件）
+        // Update UI state (enable/disable controls based on request status)
         function updateUIState() {
             if (isRequestPending) {
                 sendButton.disabled = true;
-                sendButton.textContent = "请求中...";
                 messageInput.disabled = true;
             } else {
                 sendButton.disabled = !currentUsername;
-                sendButton.textContent = "发送";
                 messageInput.disabled = !currentUsername;
             }
         }
 
         function displayMessage(content, sender) {
+            // Remove empty state if it exists
+            const emptyState = chatContainer.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message');
             messageDiv.classList.add(sender + '-message');
-            messageDiv.textContent = content;
+
+            const messageHeader = document.createElement('div');
+            messageHeader.classList.add('message-header');
+
+            const avatar = document.createElement('div');
+            avatar.classList.add('avatar');
+            avatar.classList.add(sender + '-avatar');
             
+            const nameSpan = document.createElement('span');
+            nameSpan.classList.add('sender-name');
+            nameSpan.classList.add(sender + '-name');
+            
+            if (sender === 'user') {
+                avatar.textContent = currentUsername;  // 显示完整用户名
+                nameSpan.textContent = currentUsername;
+            } else {
+                avatar.innerHTML = '<i class="fas fa-robot"></i>';
+                nameSpan.textContent = 'ChatBot';
+            }
+
+            messageHeader.appendChild(avatar);
+            messageHeader.appendChild(nameSpan);
+            messageDiv.appendChild(messageHeader);
+
+            const contentDiv = document.createElement('div');
+            contentDiv.classList.add('message-content');
+            // Use marked to render markdown content
+            contentDiv.innerHTML = marked.parse(content);
+            messageDiv.appendChild(contentDiv);
+
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
-            
-            // 如果是机器人的消息，则在消息后监听DOM变化以检测完成
-            if (sender === 'bot') {
-                // 创建一个MutationObserver来监听消息元素的变化
-                const observer = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(mutation) {
-                        if (mutation.type === 'childList' || mutation.type === 'characterData') {
-                            chatContainer.scrollTop = chatContainer.scrollHeight;
-                        }
-                    });
-                });
-                
-                // 开始观察消息元素的变化
-                observer.observe(messageDiv, {
-                    childList: true,
-                    characterData: true,
-                    subtree: true
-                });
-                
-                // 当请求完成时停止观察
-                if (!isRequestPending) {
-                    setTimeout(() => observer.disconnect(), 100);
-                }
-            }
-            
+
             return sender === 'bot' ? messageDiv : null;
         }
-        
-        // 检测服务器发送事件结束的机制
-        // 通过覆盖原始的onmessage并检查特定条件判断流是否结束
-        const originalOnMessage = EventSource.prototype.onmessage;
-        EventSource.prototype.onmessage = function(event) {
-            // 这里我们假设当收到一个空消息或者特殊标记时表示流结束
-            // 具体实现取决于后端如何标记流结束
-            // 在此示例中，我们假设当连接关闭时表示请求完成
-            
-            // 调用原始处理函数
-            if (originalOnMessage) {
-                originalOnMessage.call(this, event);
-            }
-        };
-        
+
+        // Detect server-sent event end mechanism
+        // By overriding the original onmessage and checking specific conditions to determine if stream ends
+
     </script>
 </body>
 </html>
